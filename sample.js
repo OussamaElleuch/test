@@ -25,7 +25,6 @@
                 </section>
 
                 <div v-if="!milestone">
-                  <!-- @TODO: BEGIN - Make a new component here -->
                   <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                       <ul class="groupUserList">
@@ -75,8 +74,6 @@
                       </a>
                     </div>
                   </div>
-                  <!-- @TODO: END - Make a new component here -->
-
                   <ManageMembers v-show="openManageMembers" @close="close()" />
                   <SubscriptionFeed v-show="opensubscriptionFeed" />
                   <Conversation v-show="openConversation" />
