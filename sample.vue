@@ -9,32 +9,32 @@
                 <div class="milestone-left">
                   <PodsIconsList />
                   <MileStoneList
-                    @openConversation="openConversationModule()"
-                    @openSubscription="openSubscriptionModule()"
-                    @openPodsChat="openPodsModule()"
+                    @openConversation="openConversationModule"
+                    @openSubscription="openSubscriptionModule"
+                    @openPodsChat="openPodsModule"
                   />
                 </div>
               </div>
             </div>
           </div>
           <div class="pod-main-content">
-            <div :class="'chatContainer'">
+            <div class="chatContainer">
               <div class="card group_chatbox border-0">
                 <section v-if="milestone" class="milestone pods py-0" style="padding-right: 0 !important">
-                  <MilestoneDetails :milestone="milestone" @change="OnChangeMilestone" />
+                  <MilestoneDetails :milestone="milestone" @change="onChangeMilestone" />
                 </section>
 
-                <div v-if="!milestone">
+                <div v-else>
                   <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                       <ul class="groupUserList">
-                        <template v-for="(item, i) in selectedPod.user">
-                          <li v-if="i < 2" :key="i">
+                        <template v-for="(item, i) in getFirstTwoSelectedPod" :key="i">
+                          <li>
                             <img src="@/assets/images/feed-avatar3.png" class="img-fluid" alt="" />
                           </li>
                         </template>
-                        <li v-if="selectedPod && selectedPod.user.length > 2">
-                          <span>{{ selectedPod.user.length - 2 }}+</span>
+                        <li v-if="hasMoreThanTwoSelectedPods">
+                          <span v-text="`${(selectedPod.user.length - 2)}+`"></span>
                         </li>
                       </ul>
                       <div>
@@ -53,19 +53,19 @@
                           <g transform="translate(0.75 0.75)">
                             <path
                               class="addUserA"
-                              v-bind:style="{ stroke: [$store.state.isDarkMode === true ? '#9da4ac' : '#363853'] }"
+                              :style="{ stroke: [$store.state.isDarkMode ? '#9da4ac' : '#363853'] }"
                               d="M21,12H17m2,2V10"
                               transform="translate(-3 -3)"
                             ></path>
                             <path
                               class="addUserb"
-                              v-bind:style="{ stroke: [$store.state.isDarkMode === true ? '#9da4ac' : '#363853'] }"
+                              :style="{ stroke: [$store.state.isDarkMode ? '#9da4ac' : '#363853'] }"
                               d="M3,19.111a4.865,4.865,0,0,1,4-4.849l.208-.034a17.134,17.134,0,0,1,5.576,0l.208.034a4.865,4.865,0,0,1,4,4.849A1.859,1.859,0,0,1,15.172,21H4.828A1.859,1.859,0,0,1,3,19.111Z"
                               transform="translate(-3 -3)"
                             ></path>
                             <path
                               class="addUserb"
-                              v-bind:style="{ stroke: [$store.state.isDarkMode === true ? '#9da4ac' : '#363853'] }"
+                              :style="{ stroke: [$store.state.isDarkMode ? '#9da4ac' : '#363853'] }"
                               d="M14.083,6.938A4.012,4.012,0,0,1,10,10.875,4.012,4.012,0,0,1,5.917,6.938,4.012,4.012,0,0,1,10,3,4.012,4.012,0,0,1,14.083,6.938Z"
                               transform="translate(-3 -3)"
                             ></path>
@@ -74,7 +74,7 @@
                       </a>
                     </div>
                   </div>
-                  <ManageMembers v-show="openManageMembers" @close="close()" />
+                  <ManageMembers v-show="openManageMembers" @close="close" />
                   <SubscriptionFeed v-show="opensubscriptionFeed" />
                   <Conversation v-show="openConversation" />
                   <PodsChat v-show="openPods" />
@@ -121,12 +121,9 @@ export default {
     MilestoneDetails,
     ManageMembers: () => import('@/components/modal/ManageMembers.vue'),
   },
-  async beforeMount() {
-    await this.loadMileStoneData();
-  },
   watch: {
     '$route.params.id': {
-      async handler(val) {
+      async handler() {
         await this.loadMileStoneData();
       },
       immediate: true,
@@ -134,6 +131,13 @@ export default {
   },
   computed: {
     ...mapGetters(['selectedPod']),
+    getFirstTwoSelectedPod() {
+      const [firstPod, secondPod, _] = this.selectedPod.user;
+      return [firstPod, secondPod];
+    },
+    hasMoreThanTwoSelectedPods() {
+      return this.selectedPod && this.selectedPod.user && this.selectedPod.user.length > 2;
+    }
   },
   methods: {
     ...mapActions(['getAllPods']),
@@ -158,20 +162,23 @@ export default {
       this.openPods = true;
       this.$router.push({ name: 'Pods'});
     },
-    async OnChangeMilestone(loadMilestone = true) {
+    async onChangeMilestone(loadMilestone = true) {
       if (loadMilestone) {
         await this.$store.dispatch('getMilestoneById', this.selectedPod.id);
       }
       await this.loadMileStoneData();
     },
     async loadMileStoneData() {
-      if (this.$route.name !== 'Pods' && this.$route.params.id) {
-        let resp = null;
-        resp = await getMilestonesInfoByUuid(this.$route.params.id);
-
-        this.milestone = resp.data.data[0];
-      } else {
-        this.milestone = null;
+      try {
+        const { name, params: { id } } = this.$route;
+        if (name !== 'Pods' && id) {
+          const { data: { data } } = await getMilestonesInfoByUuid(id);
+          this.milestone = data[0];
+        } else {
+          this.milestone = null;
+        }
+      } catch(err) {
+        console.error(err);
       }
     },
   },
